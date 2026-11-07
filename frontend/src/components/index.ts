@@ -3,3 +3,5 @@ export { AIAssistantChat } from './AIAssistantChat';
 export { ActionApprovals } from './ActionApprovals';
 export { FinancialCharts } from './FinancialCharts';
 export { TransactionsAndAudit } from './TransactionsAndAudit';
+export { NavigationBar } from './NavigationBar';
+export type { NavTab } from './NavigationBar';
