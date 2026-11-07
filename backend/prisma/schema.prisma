@@ -1,0 +1,152 @@
+// ─────────────────────────────────────────────────────────────
+// Prisma Schema — Autonomous Business Finance Platform
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TransactionStatus {
+  COMPLETED
+  PENDING
+  FAILED
+  FLAGGED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  UNPAID
+  PAID
+  OVERDUE
+}
+
+enum InvoiceType {
+  PAYABLE
+  RECEIVABLE
+}
+
+enum AgentActionStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  EXECUTED
+  FAILED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("CFO")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Account {
+  id          String        @id @default(uuid())
+  name        String
+  type        String        // e.g. "OPERATING", "PAYROLL", "SAVINGS", "TAX_RESERVE"
+  balance     Float         @default(0.0)
+  currency    String        @default("USD")
+  accountNum  String        @unique @map("account_number")
+  isSimulated Boolean       @default(true) @map("is_simulated")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  transactions Transaction[]
+
+  @@map("accounts")
+}
+
+model Transaction {
+  id           String            @id @default(uuid())
+  accountId    String            @map("account_id")
+  amount       Float
+  type         TransactionType
+  category     String            // e.g. "Software & SaaS", "Payroll", "Cloud Services", "Revenue"
+  description  String
+  merchant     String?
+  date         DateTime          @default(now())
+  status       TransactionStatus @default(COMPLETED)
+  isSimulated  Boolean           @default(true) @map("is_simulated")
+  anomalyScore Float?            @map("anomaly_score")
+  anomalyReason String?          @map("anomaly_reason")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  account      Account           @relation(fields: [accountId], references: [id])
+
+  @@index([date])
+  @@index([category])
+  @@map("transactions")
+}
+
+model Budget {
+  id          String   @id @default(uuid())
+  department  String   @unique // e.g. "Engineering", "Marketing", "Operations", "Sales", "G&A"
+  allocated   Float
+  spent       Float    @default(0.0)
+  period      String   // e.g. "2026-Q1" or "2026-M11"
+  alertThreshold Float @default(0.85) @map("alert_threshold") // alert when spent >= 85%
+  isSimulated Boolean  @default(true) @map("is_simulated")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("budgets")
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  type        InvoiceType   // PAYABLE or RECEIVABLE
+  counterpart String        // Client or Vendor name
+  amount      Float
+  status      InvoiceStatus @default(UNPAID)
+  dueDate     DateTime      @map("due_date")
+  issuedDate  DateTime      @default(now()) @map("issued_date")
+  description String?
+  isSimulated Boolean       @default(true) @map("is_simulated")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+model AgentAction {
+  id             String            @id @default(uuid())
+  agentName      String            @map("agent_name")
+  actionType     String            @map("action_type") // e.g. "REALLOCATE_BUDGET", "FLAG_ANOMALY", "PAY_INVOICE"
+  description    String
+  payload        String            // JSON encoded payload
+  status         AgentActionStatus @default(EXECUTED)
+  requiresApproval Boolean         @default(false) @map("requires_approval")
+  reasoning      String?
+  createdAt      DateTime          @default(now()) @map("created_at")
+  executedAt     DateTime?         @map("executed_at")
+
+  @@index([status])
+  @@map("agent_actions")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  source      String   // e.g. "ORCHESTRATOR", "EXPENSE_AGENT", "HOOK_PRE_VALIDATE"
+  level       String   // INFO, WARN, ERROR, CRITICAL
+  message     String
+  metadata    String?  // JSON string
+  timestamp   DateTime @default(now())
+
+  @@index([timestamp])
+  @@map("audit_logs")
+}
