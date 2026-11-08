@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTheme } from '../utils';
+import { FloatingChatbot } from '../components';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -71,6 +72,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
           &copy; {currentYear} Autonomous Business Finance Platform • Coordinated Multi-Agent Architecture
         </div>
       </footer>
+
+      <FloatingChatbot />
     </div>
   );
 }
